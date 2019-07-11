@@ -2,8 +2,8 @@
 
 #####################################################################################
 ## Python script used to create and submit batch jobs on CSIRO HPC for processing 
-## Sentinel backscatter data. Based on 's1fromNCI.py' from Fang Yuan @ GA on 
-## opendatacube/radar GitHub.
+## Sentinel dual-pol data (dual pol decomposition). Based on 's1fromNCI.py' from Fang 
+## Yuan @ GA on opendatacube/radar GitHub.
 ##
 ## The list of possible input parameters (with typical examples) is provided below.
 ## All parameters are optional, unless otherwise specified.
@@ -43,7 +43,7 @@
 ##  --verbose
 ##     Prints extra messages to screen. Default is not to print extra messages.
 ##  
-##  --n_cpus 16
+##  --n_cpus 8
 ##     Number of CPUs requested to process data. Default is 8 (DEF_N_CPUS in code 
 ##     below).
 ##  --jobs_basename ./test/job_543 
@@ -61,21 +61,17 @@
 ##  
 ## Examples:
 ##  > module load python3/3.6.1
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01 --jobs_basename /somedir/testing
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01 --jobs_basename ./subdir/
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-01-15 --jobs_basename testing
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 147.0 148.3 -33.8 -33.0 --startdate 2016-08-01 --enddate 2016-12-01 --base_save_dir /data/abc123/Copernicus_Backscatter_Lachlan/ --submit_no_jobs
-## Testing post-March'18 data:
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 147.0 148.3 -33.8 -33.0 --startdate 2018-06-01 --enddate 2018-06-15
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 147.0 148.3 -33.8 -33.0 --startdate 2018-02-01 --enddate 2018-02-15
-## Benchmarking:
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 147.0 148.3 -33.8 -33.0 --startdate 2016-08-01 --enddate 2016-08-16
+##  > python3.6 CHPC_dualpol_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01
+##  > python3.6 CHPC_dualpol_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01 --jobs_basename /somedir/testing
+##  > python3.6 CHPC_dualpol_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-01-01 --enddate 2018-02-01 --jobs_basename ./subdir/
+##  > python3.6 CHPC_dualpol_proc_qsub.py --bbox 130.0 131.0 -21.0 -20.0 --startdate 2018-02-01 --enddate 2018-02-15 
+##  > python3.6 CHPC_dualpol_proc_qsub.py --bbox 147.0 148.3 -33.8 -33.0 --startdate 2016-08-01 --enddate 2016-12-01 --base_save_dir /data/abc123/Copernicus_DualPolDecomp_Lachlan --submit_no_jobs
 ## 
 ## Production -- South East Victoria
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 146.5 147.5 -38.2 -37.8 --startdate 2018-01-01 --enddate 2018-07-01 --jobs_basename ./log/ --base_save_dir /data/abc123/Copernicus_Backscatter_SEVic/
+##  > python3.6 dualpol_proc_qsub.py --bbox 146.5 147.5 -38.2 -37.8 --startdate 2018-01-01 --enddate 2018-07-01 --jobs_basename ./log/ --base_save_dir /data/abc123/Copernicus_DualPolDecomp_SEVic
 ## Production -- North West Victoria
-##  > python3.6 CHPC_backsc_proc_qsub.py --bbox 142.3 144.0 -35.75 -34.5 --startdate 2018-01-01 --enddate 2018-07-01 --jobs_basename ./log/ --base_save_dir /data/abc123/Copernicus_Backscatter_NWVic/
+##  > python3.6 dualpol_proc_qsub.py --bbox 142.3 144.0 -35.75 -34.5 --startdate 2018-01-01 --enddate 2018-07-01 --jobs_basename ./log/ --base_save_dir /data/abc123/Copernicus_DualPolDecomp_NWVic
+## 
 #####################################################################################
 
 
@@ -93,26 +89,29 @@ except ImportError:
 
 SARAQURL = "https://copernicus.nci.org.au/sara.server/1.0/api/collections/S1/search.json?"
 
-JOB_SCRIPT = "CHPC_backsc_proc.sh"  # name of SBATCH shell script to carry out the backscatter processing
-XML_GRAPH = "CHPC_backsc_proc_graph.xml"    # for consistency checks only -- as defined in JOB_SCRIPT
-DEF_PIXEL_RES = "25.0"              # string, default pixel resolution in output product (in [m])
+JOB_SCRIPT = "CHPC_dualpol_proc.sh"  # name of SBATCH shell script to carry out the dual-pol processing
+XML_GRAPH1 = "CHPC_dualpol_proc_graph1.xml"          # for consistency checks only -- as defined in JOB_SCRIPT
+XML_GRAPH2 = "CHPC_dualpol_proc_graph2.xml"
+XML_GRAPH3 = "CHPC_dualpol_proc_graph3.xml"
+DEF_PIXEL_RES = "25.0"      # string, default pixel resolution in output product (in [m])
 
 SOURCE_URL = "http://dapds00.nci.org.au/thredds/fileServer/fj7/Copernicus/"      # "hard-coded" url to the Sentinel-1 data on NCI Thredds server (ends with '/')
 SOURCE_SUBDIR = "Sentinel-1"                # "hard-coded" next subdir in the source path (no trailing '/')
 
-DEF_N_CPUS = 16             # default nr of CPUs for processing
+DEF_N_CPUS = 12             # default nr of CPUs for processing
 MEM_REQ = 100               # in [GB]; MEM (RAM) requirements for SBATCH job
-MAX_TIME_PER_JOB = 5*60     # approx max walltime per job
-MAX_SCENES_PER_JOB = 5      # desired max nr of scenes per job submitted to PBS
+MAX_TIME_PER_JOB = 8*60     # approx max walltime per job
+MAX_SCENES_PER_JOB = 3      # desired max nr of scenes per job submitted to PBS
 MAX_N_JOBS = 300
 
-walltime_per_scene = lambda ncpu: 1.35 * (1.118 + (102.824 / ncpu) + 0.153 * ncpu)   # walltime in [min] as fcn of #CPUs on Bracewell (fitted)
+walltime_per_scene = lambda ncpu: 1.5 * (-17.595 + (345.577 / ncpu) + 8.108 * ncpu - 0.184 * ncpu**2)   # walltime in [min] as fcn of #CPUs on Bracewell (fitted)
 
 # Note on MEM_REQ value: the SNAP software on the HPC is typically installed with a definition of the maximum usable 
 # MEM allocation (see -Xmx value in the gpt.vmoptions file). This means that the SBATCH jobs must be submitted with a 
 # minimum of that amount of MEM. It is further suggested to have the max MEM value (-Xmx) in SNAP set to ~75% of the 
 # total amount of RAM in the system. According to this, with e.g. -Xmx65GB, the SBATCH jobs should theoretically be 
 # submitted with ~88GB of MEM.
+
 
 def quicklook_to_url(qlurl):
     fp = SOURCE_URL + SOURCE_SUBDIR + qlurl.split(SOURCE_SUBDIR)[1].replace(".png",".zip")
@@ -122,11 +121,13 @@ def quicklook_to_url(qlurl):
 def main():
     # basic input checks:
     if not os.path.isfile(JOB_SCRIPT): sys.exit("Error: job script '%s' does not exist." % JOB_SCRIPT)
-    if not os.path.isfile(XML_GRAPH): sys.exit("Error: XML graph file '%s' does not exist." % XML_GRAPH)
+    if not os.path.isfile(XML_GRAPH1): sys.exit("Error: XML graph file '%s' does not exist." % XML_GRAPH1)
+    if not os.path.isfile(XML_GRAPH2): sys.exit("Error: XML graph file '%s' does not exist." % XML_GRAPH2)
+    if not os.path.isfile(XML_GRAPH3): sys.exit("Error: XML graph file '%s' does not exist." % XML_GRAPH3)
     
     
     # input parameters:
-    parser = argparse.ArgumentParser(description="Backscatter processing: create and submit batch jobs on the CSIRO HPC for processing Sentinel scenes to ARD data.")
+    parser = argparse.ArgumentParser(description="Dual-pol decomposition: create and submit batch jobs on the CSIRO HPC for processing Sentinel scenes to ARD data.")
     
     # non-optional parameters:
     parser.add_argument("--startdate", default=None,
@@ -147,7 +148,7 @@ def main():
     parser.add_argument( "--pixel_res", default=DEF_PIXEL_RES, 
                          help="Pixel resolution in output product, in [m]. Default is %(default)s." )
     
-    parser.add_argument( "--product", choices=['SLC','GRD'], default='GRD',
+    parser.add_argument( "--product", choices=['SLC','GRD'], default='SLC',
                          help="Data product to search. Default is %(default)s." )
     parser.add_argument( "--mode", choices=['IW','EW'], default='IW',
                          help="Required sensor mode. Default is %(default)s." )
@@ -163,7 +164,7 @@ def main():
     parser.add_argument( "--n_cpus", default=DEF_N_CPUS, type=int, 
                          help="Number of CPUs requested to process data. Default is %(default)s." )
     parser.add_argument( "--jobs_basename", 
-                         help="Base name or dir for submitted SBATCH jobs. If ends with '/' (i.e. directory), default name will be added to the path. Default name is 'backsc_proc_YYYYMMDD_HHMMSS' (current date and time)." )
+                         help="Base name or dir for submitted SBATCH jobs. If ends with '/' (i.e. directory), default name will be added to the path. Default name is 'dualpol_proc_YYYYMMDD_HHMMSS' (current date and time)." )
     parser.add_argument( "--submit_no_jobs", action='store_true', 
                          help="Debug: use to only display job commands. Default is %(default)s." )
     parser.add_argument( "--reprocess_existing", action='store_true', 
@@ -176,7 +177,7 @@ def main():
     if cmdargs.startdate is None or cmdargs.enddate is None or cmdargs.bbox is None or cmdargs.base_save_dir is None or cmdargs.base_data_dir is None or cmdargs.gpt_exec is None:
         sys.exit("Error: Input arguments 'startdate', 'enddate', 'base_save_dir', 'base_data_dir', 'gpt_exec' and 'bbox' must be defined.")
     
-    tmp = 'backsc_proc_' + str(datetime.now()).split('.')[0].replace('-','').replace(' ','_').replace(':','')
+    tmp = 'dualpol_proc_' + str(datetime.now()).split('.')[0].replace('-','').replace(' ','_').replace(':','')
     if cmdargs.jobs_basename is None:
         cmdargs.jobs_basename = tmp
     elif cmdargs.jobs_basename.endswith("/"): 
@@ -213,6 +214,7 @@ def main():
         (westLong, eastLong, southLat, northLat) = cmdargs.bbox
         bboxWkt = 'POLYGON(({left} {top}, {right} {top}, {right} {bottom}, {left} {bottom}, {left} {top}))'.format(left=westLong, right=eastLong, top=northLat, bottom=southLat )
         queryUrl += "&geometry={0}".format(urlquote(bboxWkt))
+    
     
     # make a paged SARA query:
     fileURLs = []
@@ -263,8 +265,8 @@ def main():
             print( "Downloading .zip file: %s" % urli )
             os.makedirs( os.path.dirname(fpath), exist_ok=True)    # create path if necessary
             urlretrieve(urli, fpath)
-    
-    
+
+            
     # write separate lists of scenes (one per SBATCH job):
     tot_walltime = walltime_per_scene(cmdargs.n_cpus) * n_scenes
     n_jobs = np.ceil( tot_walltime / MAX_TIME_PER_JOB )
@@ -282,12 +284,11 @@ def main():
         with open(slist_name,'w') as ln:
             ln.writelines( map(lambda x: x + '\n', job) )
     
-    
     # create SBATCH job scripts & submit to HPC:
     jlist_name = cmdargs.jobs_basename + '.jobs'
     with open(jlist_name,'w') as ln:
-        ln.write( "\nBatch jobs for BACKSCATTER processing of SAR scenes\n" )
-        ln.write( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n" )
+        ln.write( "\nBatch jobs for DUAL POL. DECOMPOSITION processing of SAR scenes\n" )
+        ln.write( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n" )
         ln.write( "Time is: %s \n\n" % str( datetime.now() ) )
         ln.write( "Input parameters are:\n" )
         ln.write( "  Start date: %s \n" % cmdargs.startdate )
@@ -323,8 +324,7 @@ def main():
         with open(jlist_name,'a') as ln:
             ln.write( "\n" + cmdstr + "\n" )
         if not cmdargs.submit_no_jobs: os.system( cmd )
-    
+        
     
 if __name__ == "__main__":
     main()
-
