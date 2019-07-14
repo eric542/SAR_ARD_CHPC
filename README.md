@@ -9,7 +9,7 @@ The code base for this project is strongly correlated with the code available on
 ## Getting Started
 
 The general approach used in the code is simlar for the three types of data products (`<task>` = `backsc`, `dualpol` or `intcoh`), and is as follows:
-1. use the function `CHPC_<task>_proc_qsub.py` with desired user input arguments (e.g. date range, spatial extent, etc.) to automatically generate and submit a number of SBATCH job scripts on the HPC
+1. use the function `CHPC_<task>_proc_qsub.py` with desired user input arguments (e.g. date range, spatial extent, etc.) to automatically generate and submit a number of SBATCH job scripts on the HPC; this command will also automatically check the availability on disk of the selected scenes of raw Sentinel-1 data, and download them if necessary
 1. the jobs are executed on the basis of the `CHPC_<task>_proc.sh` scripts and the corresponding `.xml` files (executed by GPT)
 1. upon completion of the jobs, the data is generated in the desired directory, and various ancillary and diagnostics files can be investigated.
 
