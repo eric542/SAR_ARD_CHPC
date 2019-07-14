@@ -98,13 +98,13 @@ DEF_PIXEL_RES = "25.0"      # string, default pixel resolution in output product
 SOURCE_URL = "http://dapds00.nci.org.au/thredds/fileServer/fj7/Copernicus/"      # "hard-coded" url to the Sentinel-1 data on NCI Thredds server (ends with '/')
 SOURCE_SUBDIR = "Sentinel-1"                # "hard-coded" next subdir in the source path (no trailing '/')
 
-DEF_N_CPUS = 12             # default nr of CPUs for processing
+DEF_N_CPUS = 8              # default nr of CPUs for processing
 MEM_REQ = 100               # in [GB]; MEM (RAM) requirements for SBATCH job
 MAX_TIME_PER_JOB = 8*60     # approx max walltime per job
 MAX_SCENES_PER_JOB = 3      # desired max nr of scenes per job submitted to PBS
 MAX_N_JOBS = 300
 
-walltime_per_scene = lambda ncpu: 1.5 * (-17.595 + (345.577 / ncpu) + 8.108 * ncpu - 0.184 * ncpu**2)   # walltime in [min] as fcn of #CPUs on Bracewell (fitted)
+walltime_per_scene = lambda ncpu: 1.35 * (-17.595 + (345.577 / ncpu) + 8.108 * ncpu - 0.184 * ncpu**2)   # walltime in [min] as fcn of #CPUs on Bracewell (fitted)
 
 # Note on MEM_REQ value: the SNAP software on the HPC is typically installed with a definition of the maximum usable 
 # MEM allocation (see -Xmx value in the gpt.vmoptions file). This means that the SBATCH jobs must be submitted with a 
